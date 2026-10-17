@@ -1,5 +1,9 @@
 # Nexus-Code-Agent
 
+[![CI](https://github.com/voidcode-47/Nexus-Code-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/voidcode-47/Nexus-Code-Agent/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-86%25-green)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue)
+
 > 企业级**自动化代码自愈与演进智能体平台**（Autonomous Code Healing & Evolution Platform）
 
 Nexus-Code-Agent 接收 GitHub Issue、报警日志或自然语言指令，自动完成大型代码库的

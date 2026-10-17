@@ -1,0 +1,7 @@
+# Nexus-Code-Agent 评测平台可选依赖
+# 安装: pip install -r requirements.txt -r requirements-eval.txt
+#
+# 说明：用于 HuggingFace SWE-bench Lite 数据集加载（src/evaluation/swe_bench_loader.py）。
+# 未安装时平台自动降级为离线 JSONL 或合成样例，不影响其余功能。
+
+datasets>=2.18

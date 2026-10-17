@@ -1,0 +1,85 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: nexus-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/6333"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+      POSTGRES_DB: nexus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false     # 未复制 .env 时仍可启动（使用镜像内默认值）
+    environment:
+      NEXUS_API__HOST: 0.0.0.0      # 容器内必须监听全部接口，宿主机映射端口访问
+      NEXUS_RETRIEVAL__QDRANT_URL: http://qdrant:6333
+      NEXUS_REDIS__URL: redis://redis:6379/0
+      NEXUS_POSTGRES__DSN: postgresql://nexus:nexus@postgres:5432/nexus
+    ports:
+      # 默认只发布到宿主回环地址。容器内是 0.0.0.0，若直接写成 "8000:8000"，
+      # 未配置 NEXUS_API__AUTH_TOKEN 的 dev 实例会被整片局域网/公网访问到——
+      # POST /api/v1/tasks 可指定任意 repo_path（会 git init 并运行被测代码），
+      # 等价于把宿主机执行权开放出去。需要对外时显式设置
+      # NEXUS_API_BIND=0.0.0.0，并同时配置 AUTH_TOKEN 与 ALLOWED_REPO_ROOTS。
+      - "${NEXUS_API_BIND:-127.0.0.1}:8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace
+    depends_on:
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+volumes:
+  qdrant_data:
+  redis_data:
+  postgres_data:

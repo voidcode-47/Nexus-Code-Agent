@@ -1,0 +1,40 @@
+# Docker 构建上下文过滤。
+#
+# 缺失该文件时 `COPY . .` 会把工作区**全部**内容打进镜像层：`.env` 中的
+# GitHub Token / API Token 会被永久固化在镜像里（层不可删除，推送即泄露），
+# 同时 `.git`、`.venv`、评测产物会让构建上下文与镜像体积大幅膨胀。
+
+# --- 密钥与本地配置 ---
+.env
+.env.*
+!.env.example
+
+# --- 版本库与工具缓存 ---
+.git
+.gitignore
+.github
+.venv
+venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+
+# --- 构建与运行产物 ---
+build/
+dist/
+.nexus/
+eval_results/
+logs/
+*.log
+
+# --- 编辑器 / 系统文件 ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

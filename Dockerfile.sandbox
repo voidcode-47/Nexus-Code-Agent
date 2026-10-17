@@ -1,0 +1,22 @@
+# Nexus 沙箱基础镜像：Docker 预热容器池使用（NEXUS_SANDBOX__BACKEND=docker）
+# 构建：make sandbox-image  （即 docker build -f Dockerfile.sandbox -t nexus-sandbox:latest .）
+#
+# 说明：镜像仅提供通用 Python 测试运行时；具体仓库依赖可在容器内按需安装，
+# 或通过 Worktree 挂载后由测试自行引导。
+# procps 提供 pkill：容器命令超时后 pool_manager 依赖它终止被测进程
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates procps \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir pytest pytest-asyncio pytest-cov
+
+WORKDIR /workspace
+
+# 常驻休眠，等待 pool_manager 注入执行命令
+CMD ["sleep", "infinity"]

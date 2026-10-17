@@ -30,6 +30,17 @@ async def test_check_missing_file(tmp_path):
     assert report.errors
 
 
+async def test_check_mixed_existing_and_missing(tmp_path):
+    """部分文件缺失时：缺失文件报 error，存在文件仍正常检查（pyright 路径同样生效）。"""
+    good = tmp_path / "good.py"
+    good.write_text("def f():\n    return 1\n", encoding="utf-8")
+    bridge = LSPBridge()  # 不禁用 pyright：CI 上装有 pyright 也必须拦截缺失文件
+    report = await bridge.check([good, "__nope__.py"], root=tmp_path)
+    assert not report.passed
+    assert any(d.message == "文件不存在" for d in report.errors)
+    assert not any("good" in d.message for d in report.errors)
+
+
 def test_report_summary_formats():
     report = LSPReport(
         passed=False,

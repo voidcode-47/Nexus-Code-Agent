@@ -107,11 +107,27 @@ class LSPBridge:
         """对指定文件执行静态检查。"""
         start = time.monotonic()
         paths = [str(Path(f)) for f in files]
-        report: LSPReport
-        if use_pyright and self.pyright_cmd:
-            report = await self._check_pyright(paths, root=root, timeout=timeout)
-        else:
-            report = await self._check_syntax(paths, root=root)
+        # pyright 对不存在的路径静默返回 0 错误（--outputjson 无诊断），
+        # 缺失文件必须在此拦截，否则「补丁指向已删除文件」会被误判为通过
+        resolved = [(f, Path(f) if Path(f).is_absolute() else Path(root) / f) for f in paths]
+        missing = [orig for orig, p in resolved if not p.is_file()]
+        existing = [orig for orig, p in resolved if p.is_file()]
+
+        diagnostics = [Diagnostic(f, 0, 0, "error", "文件不存在", "io") for f in missing]
+        engine = self.engine
+        if existing:
+            sub: LSPReport
+            if use_pyright and self.pyright_cmd:
+                sub = await self._check_pyright(existing, root=root, timeout=timeout)
+            else:
+                sub = await self._check_syntax(existing, root=root)
+            diagnostics.extend(sub.diagnostics)
+            engine = sub.engine
+        report = LSPReport(
+            passed=not any(d.is_error for d in diagnostics),
+            diagnostics=diagnostics,
+            engine=engine,
+        )
         report.duration_s = time.monotonic() - start
         self._last_duration = report.duration_s
         logger.info(

@@ -98,7 +98,14 @@ def compute_metrics(
         else:
             buckets[">10min"] += 1
 
-    pass_at_1 = resolved / total if total else 0.0
+    def _first_succeeded(r: EvalResult) -> bool:
+        # Pass@1 = 首次采样成功率；缺逐轮记录（旧数据/外部构造结果）时退化为最终 resolved
+        return bool(r.attempt_outcomes[0]) if r.attempt_outcomes else r.resolved
+
+    # resolved 是「配置轮数内任一次成功」（= Pass@max_k），不能直接当 Pass@1，
+    # 否则多轮重试会高估首修率
+    first_succeeded = sum(1 for r in results if _first_succeeded(r))
+    pass_at_1 = first_succeeded / total if total else 0.0
     # Pass@k：依据每题多轮尝试结果计算曲线（无尝试数据时退化为 Pass@1）
     per_instance: dict[str, list[bool]] = {
         r.instance_id: r.attempt_outcomes for r in results if r.attempt_outcomes

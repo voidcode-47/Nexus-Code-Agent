@@ -64,6 +64,9 @@ def test_compute_metrics_pass_at_k_curve():
     assert metrics.pass_at_k_curve["Pass@1"] == 0.0
     assert metrics.pass_at_k_curve["Pass@2"] == 0.5
     assert metrics.pass_at_k == 0.5
+    # 回归：顶层 Pass@1 必须等于首轮采样成功率，不能被多轮重试的 resolved 抬高
+    assert metrics.pass_at_1 == 0.0
+    assert metrics.resolved == 1  # 任一轮成功计为最终交付成功（Pass@2 口径）
     assert metrics.avg_attempts == 2.0
 
 

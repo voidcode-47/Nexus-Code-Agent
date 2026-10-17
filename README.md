@@ -170,6 +170,35 @@ Checkpoint 线程：
 报表自动生成 **Pass@k 曲线**、平均尝试轮数，并内嵌 Mermaid `radar-beta`
 雷达图（附终端 ASCII 降级视图）。
 
+#### 受控缺陷基准实测（DeepSeek · cerberus）
+
+为给出可复现的端到端能力数据，在真实开源仓库
+[pyeve/cerberus](https://github.com/pyeve/cerberus) `1.3.x`（246 个真实单元测试）上，
+用**变异测试**方法构造缺陷集：自动注入 90 个单行算子变异，仅保留「能被仓库自带测试
+真实捕获」的 15 个（每个缺陷都有明确的失败测试，等价 SWE-bench 的 FAIL_TO_PASS），
+再由智能体在隔离 worktree 中独立定位修复，沙箱跑**全量 246 个测试**判定
+（比官方只比对 FAIL_TO_PASS 更严格）。脚本、缺陷集与逐题结果见
+[`benchmarks/`](benchmarks/)。
+
+| 指标 | 数值 |
+| --- | --- |
+| **Pass@1**（首次采样修复率） | **60.0%（9/15）** |
+| **Pass@2**（两次采样内修复率） | **73.3%（11/15）** |
+| 平均工作流迭代 | 4.67 轮 |
+| 单题平均 Token | 5,940 |
+| 单题平均全流程耗时 | 47.7s |
+| 总 Token / API 成本 | 89,098 / 约 ¥0.3 |
+| 成功补丁触碰测试文件 | 0 / 11（无「改测试作弊」） |
+
+模型 `deepseek-chat`，2026-10-17 跑分；完整报表（含雷达图、耗时分布、逐题补丁）见
+[cerberus-report.md](benchmarks/artifacts/cerberus-report.md)。
+其中 2 个缺陷首轮失败、次轮成功，体现了多轮重试的增益。
+
+> **方法学边界（如实说明）**：上述为**受控变异基准**（mutation-based，与 Defects4J
+> 同类思路），用于在固定预算内验证「定位 → 修复 → 验证」闭环；它**不是** SWE-bench
+> 官方 harness（官方需按 `base_commit` 重建 per-instance 环境并套用 `test_patch`）。
+> 接入官方 SWE-bench Verified harness 已列为 roadmap。
+
 ## 文档
 
 本 README 是仓库内唯一的架构与使用说明（仓库未随附独立设计文档）：
